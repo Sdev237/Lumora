@@ -7,8 +7,8 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Voyageo - Réseau Social de Voyage',
-  description: 'Partagez vos voyages et découvrez le monde avec Voyageo',
+  title: 'Lumora - Réseau Social Moderne',
+  description: 'Partagez vos instants et découvrez le monde avec Lumora',
 }
 
 export default function RootLayout({

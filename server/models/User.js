@@ -136,6 +136,25 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    // Age verification & compliance
+    dateOfBirth: {
+      type: Date,
+    },
+    ageVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationMethod: {
+      type: String,
+      enum: ["none", "self-report", "manual-review", "external-provider"],
+      default: "none",
+    },
+    verificationConfidence: {
+      type: Number,
+      min: 0,
+      max: 1,
+      default: 0,
+    },
   },
   {
     timestamps: true,
@@ -152,6 +171,8 @@ userSchema.index({ username: 1 });
 userSchema.index({ email: 1 });
 userSchema.index({ "currentLocation.city": 1 });
 userSchema.index({ lastActive: -1 });
+userSchema.index({ followers: 1 });
+userSchema.index({ following: 1 });
 
 /**
  * Hash password before saving

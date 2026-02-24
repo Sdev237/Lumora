@@ -32,6 +32,12 @@ const validateRegister = [
   body("password")
     .isLength({ min: 6 })
     .withMessage("Le mot de passe doit contenir au moins 6 caractères"),
+  body("dateOfBirth")
+    .exists()
+    .withMessage("La date de naissance est requise")
+    .isISO8601()
+    .withMessage("Date de naissance invalide")
+    .toDate(),
   handleValidationErrors,
 ];
 

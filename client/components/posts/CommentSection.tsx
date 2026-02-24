@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -18,6 +19,7 @@ export default function CommentSection({
   onUpdate,
 }: CommentSectionProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [comments, setComments] = useState<any[]>([]);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
@@ -68,20 +70,40 @@ export default function CommentSection({
     }
   };
 
+  const handleAuthorClick = (authorId: string) => {
+    if (!authorId) return;
+    router.push(`/profile/${authorId}`);
+  };
+
   return (
     <div className="mt-4 space-y-4">
       {/* Form */}
       <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-        {user?.avatar ? (
-          <img
-            src={user.avatar}
-            alt={user.username}
-            className="w-8 h-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-medium">
-            {user?.username?.charAt(0).toUpperCase()}
-          </div>
+        {user && (
+          <>
+            {user.avatar ? (
+              <img
+                src={
+                  user.avatar.startsWith("http")
+                    ? user.avatar
+                    : `${
+                        process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+                        "http://localhost:5000"
+                      }${
+                        user.avatar.startsWith("/")
+                          ? user.avatar
+                          : "/" + user.avatar
+                      }`
+                }
+                alt={user.username}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-medium">
+                {user.username?.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </>
         )}
         <input
           type="text"
@@ -110,37 +132,47 @@ export default function CommentSection({
         <div className="space-y-3">
           {comments.map((comment) => (
             <div key={comment._id} className="flex items-start space-x-3">
-              {comment.author.avatar ? (
-                <img
-                  src={
-                    comment.author.avatar.startsWith("http")
-                      ? comment.author.avatar
-                      : `${
-                          process.env.NEXT_PUBLIC_API_URL?.replace(
-                            "/api",
-                            ""
-                          ) || "http://localhost:5000"
-                        }${
-                          comment.author.avatar.startsWith("/")
-                            ? comment.author.avatar
-                            : "/" + comment.author.avatar
-                        }`
-                  }
-                  alt={comment.author.username}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-medium">
-                  {comment.author.username?.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => handleAuthorClick(comment.author._id)}
+                className="flex-shrink-0 focus:outline-none"
+              >
+                {comment.author.avatar ? (
+                  <img
+                    src={
+                      comment.author.avatar.startsWith("http")
+                        ? comment.author.avatar
+                        : `${
+                            process.env.NEXT_PUBLIC_API_URL?.replace(
+                              "/api",
+                              ""
+                            ) || "http://localhost:5000"
+                          }${
+                            comment.author.avatar.startsWith("/")
+                              ? comment.author.avatar
+                              : "/" + comment.author.avatar
+                          }`
+                    }
+                    alt={comment.author.username}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-medium">
+                    {comment.author.username?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </button>
               <div className="flex-1">
                 <div className="bg-gray-100 rounded-lg px-3 py-2">
-                  <p className="font-semibold text-sm text-gray-900">
+                  <button
+                    type="button"
+                    onClick={() => handleAuthorClick(comment.author._id)}
+                    className="font-semibold text-sm text-gray-900 hover:underline"
+                  >
                     {comment.author.firstName && comment.author.lastName
                       ? `${comment.author.firstName} ${comment.author.lastName}`
                       : comment.author.username}
-                  </p>
+                  </button>
                   <p className="text-gray-700 text-sm mt-1">
                     {comment.content}
                   </p>

@@ -49,6 +49,40 @@ export default function PostCard({
     }
   };
 
+  const handleShare = async () => {
+    try {
+      if (typeof window === "undefined") return;
+
+      const url = `${window.location.origin}/posts/${post._id}`;
+      const text =
+        post.content?.slice(0, 140) ||
+        "Découvrez cette publication sur Lumora";
+
+      if (navigator.share) {
+        await navigator.share({
+          title: "Lumora",
+          text,
+          url,
+        });
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const tempInput = document.createElement("input");
+        tempInput.value = url;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+      }
+
+      toast.success("Lien de la publication copié");
+    } catch (error) {
+      // Ignore share cancellation
+      console.error("Erreur lors du partage", error);
+      toast.error("Impossible de partager la publication");
+    }
+  };
+
   const handleProfileClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     router.push(`/profile/${post.author._id}`);
@@ -129,7 +163,14 @@ export default function PostCard({
           {post.images.map((image: string, index: number) => (
             <img
               key={index}
-              src={image}
+              src={
+                image.startsWith("http")
+                  ? image
+                  : `${
+                      process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+                      "http://localhost:5000"
+                    }${image.startsWith("/") ? image : "/" + image}`
+              }
               alt={`Post image ${index + 1}`}
               className="w-full h-64 object-cover"
             />
@@ -160,7 +201,10 @@ export default function PostCard({
               <span>{post.comments?.length || 0}</span>
             </button>
 
-            <button className="flex items-center space-x-2 text-gray-600 hover:text-primary-600 transition-colors">
+            <button
+              onClick={handleShare}
+              className="flex items-center space-x-2 text-gray-600 hover:text-primary-600 transition-colors"
+            >
               <FiShare2 className="w-5 h-5" />
             </button>
           </div>

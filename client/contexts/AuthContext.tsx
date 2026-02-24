@@ -24,7 +24,14 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (username: string, email: string, password: string, firstName?: string, lastName?: string) => Promise<void>
+  register: (
+    username: string,
+    email: string,
+    password: string,
+    firstName?: string,
+    lastName?: string,
+    dateOfBirth?: string
+  ) => Promise<void>
   logout: () => void
 }
 
@@ -85,15 +92,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (username: string, email: string, password: string, firstName?: string, lastName?: string) => {
+  const register = async (
+    username: string,
+    email: string,
+    password: string,
+    firstName?: string,
+    lastName?: string,
+    dateOfBirth?: string
+  ) => {
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-        username,
-        email,
-        password,
-        firstName,
-        lastName
-      })
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
+        {
+          username,
+          email,
+          password,
+          firstName,
+          lastName,
+          dateOfBirth,
+        }
+      )
       
       localStorage.setItem('token', response.data.token)
       axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`

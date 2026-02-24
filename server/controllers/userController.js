@@ -44,8 +44,24 @@ exports.getProfile = async (req, res, next) => {
  */
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { firstName, lastName, bio, interests, homeLocation } = req.body;
+    const { username, firstName, lastName, bio, interests, homeLocation } = req.body;
     const updates = {};
+
+    if (username) {
+      const existing = await User.findOne({
+        username,
+        _id: { $ne: req.user._id },
+      });
+
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: "Ce nom d'utilisateur est déjà utilisé",
+        });
+      }
+
+      updates.username = username;
+    }
 
     if (firstName) updates.firstName = firstName;
     if (lastName) updates.lastName = lastName;

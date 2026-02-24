@@ -30,8 +30,10 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary-600 mb-2">Voyageo</h1>
-          <p className="text-gray-600">Partagez vos voyages avec le monde</p>
+          <h1 className="text-4xl font-bold text-primary-600 mb-2">Lumora</h1>
+          <p className="text-gray-600">
+            Partagez vos moments et éclairez votre réseau
+          </p>
         </div>
 
         <div className="flex mb-6 border-b">

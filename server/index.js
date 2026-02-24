@@ -74,7 +74,7 @@ app.use("/api/notifications", notificationRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "OK", message: "Voyageo API is running" });
+  res.json({ status: "OK", message: "Lumora API is running" });
 });
 
 // Error handling middleware

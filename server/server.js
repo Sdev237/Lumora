@@ -1,6 +1,6 @@
 /**
- * Voyageo - Server Entry Point
- * Next-generation social media app for travelers
+ * Lumora - Server Entry Point
+ * Modern social media application
  */
 
 const express = require("express");
@@ -144,7 +144,7 @@ app.use("/api/explore", exploreRoutes);
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
-    message: "Voyageo API is running",
+    message: "Lumora API is running",
     timestamp: new Date().toISOString(),
   });
 });
@@ -158,7 +158,7 @@ initScheduler();
 // Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Serveur Voyageo démarré sur le port ${PORT}`);
+  console.log(`🚀 Serveur Lumora démarré sur le port ${PORT}`);
   console.log(`📡 Socket.io prêt pour les connexions temps réel`);
   console.log(`⏰ Planificateur de jobs actif`);
 });

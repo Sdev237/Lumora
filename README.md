@@ -1,6 +1,6 @@
-# Voyageo - Next-Generation Social Media for Travelers
+# Lumora - Modern Social Media Platform
 
-A full-featured social media application designed specifically for travelers, with advanced features beyond traditional platforms like Instagram.
+A full-featured social media application designed for rich, real-time sharing, with advanced features beyond traditional platforms like Instagram.
 
 ## 🌟 Features
 

@@ -5,6 +5,9 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const {
+  evaluateDeclaredAge,
+} = require('../services/ageVerificationService');
 
 /**
  * Generate JWT token
@@ -22,7 +25,10 @@ const generateToken = (userId) => {
  */
 exports.register = async (req, res, next) => {
   try {
-    const { username, email, password, firstName, lastName } = req.body;
+    const { username, email, password, firstName, lastName, dateOfBirth } = req.body;
+
+    const minimumAge =
+      parseInt(process.env.MINIMUM_AGE || '', 10) || 16;
 
     // Check if user already exists
     const existingUser = await User.findOne({
@@ -36,13 +42,27 @@ exports.register = async (req, res, next) => {
       });
     }
 
+    // Age verification based on declared date of birth
+    const { isOfAge } = evaluateDeclaredAge(dateOfBirth, minimumAge);
+
+    if (!isOfAge) {
+      return res.status(400).json({
+        success: false,
+        message: `Vous devez avoir au moins ${minimumAge} ans pour créer un compte.`,
+      });
+    }
+
     // Create user
     const user = await User.create({
       username,
       email,
       password,
       firstName,
-      lastName
+      lastName,
+      dateOfBirth,
+      ageVerified: true,
+      verificationMethod: 'self-report',
+      verificationConfidence: 0.5,
     });
 
     const token = generateToken(user._id);

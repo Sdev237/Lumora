@@ -3,16 +3,47 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
-import { FiHome, FiMap, FiUser, FiLogOut, FiSearch } from "react-icons/fi";
+import {
+  FiHome,
+  FiMap,
+  FiUser,
+  FiLogOut,
+  FiBell,
+} from "react-icons/fi";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
+import { onNotification } from "@/lib/socket";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleLogout = () => {
     logout();
   };
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnread = async () => {
+      try {
+        const response = await api.get("/notifications", {
+          params: { page: 1, limit: 1 },
+        });
+        setUnreadCount(response.data.unreadCount || 0);
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchUnread();
+
+    onNotification(() => {
+      setUnreadCount((prev) => prev + 1);
+    });
+  }, [user]);
 
   const navItems = [
     { href: "/feed", icon: FiHome, label: "Fil d'actualité" },
@@ -25,7 +56,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/feed" className="flex items-center">
-            <span className="text-2xl font-bold text-primary-600">Voyageo</span>
+            <span className="text-2xl font-bold text-primary-600">Lumora</span>
           </Link>
 
           <div className="flex items-center space-x-6">
@@ -51,6 +82,19 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            <Link
+              href="/notifications"
+              className="relative flex items-center justify-center px-3 py-2 rounded-lg text-gray-600 hover:text-primary-600 hover:bg-gray-50 transition-colors"
+              onClick={() => setUnreadCount(0)}
+            >
+              <FiBell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-red-500 text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Link>
 
             <button
               onClick={handleLogout}

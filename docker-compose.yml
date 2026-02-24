@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: voyageo-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: voyageo
+    networks:
+      - voyageo-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voyageo-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server:/app/server
+      - ./uploads:/app/uploads
+      - /app/node_modules
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/voyageo
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-in-production}
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:3000}
+    depends_on:
+      - mongodb
+    networks:
+      - voyageo-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  voyageo-network:
+    driver: bridge

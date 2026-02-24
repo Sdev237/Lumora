@@ -1,0 +1,17 @@
+node_modules/
+.env
+.env.local
+.DS_Store
+*.log
+uploads/
+.next/
+out/
+dist/
+build/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+DEPLOIEMENT_ET_SERVICES.md
+QUICKSTART.md

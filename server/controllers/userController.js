@@ -44,7 +44,7 @@ exports.getProfile = async (req, res, next) => {
  */
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { username, firstName, lastName, bio, interests, homeLocation } = req.body;
+    const { username, firstName, lastName, bio, interests, homeLocation, terminologyPreference } = req.body;
     const updates = {};
 
     if (username) {
@@ -76,6 +76,18 @@ exports.updateProfile = async (req, res, next) => {
         city: homeLocation.city || '',
         country: homeLocation.country || ''
       };
+    }
+
+    if (terminologyPreference) {
+      try {
+        const parsed =
+          typeof terminologyPreference === "string"
+            ? JSON.parse(terminologyPreference)
+            : terminologyPreference;
+        updates.terminologyPreference = parsed;
+      } catch (e) {
+        // Ignore malformed preferences
+      }
     }
 
     const user = await User.findByIdAndUpdate(

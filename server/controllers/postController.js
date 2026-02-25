@@ -13,10 +13,21 @@ const { getIO, emitNotification } = require('../sockets/socketHandler');
  */
 exports.createPost = async (req, res, next) => {
   try {
-    const { content, location, tags } = req.body;
-    const images = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+    const { content, location, tags, musicURL, musicVolume } = req.body;
+    const files = req.files || [];
+    const media = files.map(file => {
+      const ext = (file.mimetype || "").toLowerCase();
+      const type = ext.includes("video") ? "video" : "image";
+      return {
+        type,
+        url: `/uploads/${file.filename}`,
+      };
+    });
+    const images = media
+      .filter((m) => m.type === "image")
+      .map((m) => m.url);
 
-    if (!content && images.length === 0) {
+    if (!content && media.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Le contenu ou une image est requis'
@@ -26,7 +37,8 @@ exports.createPost = async (req, res, next) => {
     const postData = {
       author: req.user._id,
       content: content || '',
-      images
+      media,
+      images,
     };
 
     // Add location if provided
@@ -48,6 +60,18 @@ exports.createPost = async (req, res, next) => {
     // Add tags if provided
     if (tags) {
       postData.tags = Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim());
+    }
+
+    // Attach music metadata if provided
+    if (musicURL) {
+      postData.musicURL = musicURL;
+      const volumeNumber =
+        typeof musicVolume === "string" ? parseFloat(musicVolume) : musicVolume;
+      if (!Number.isNaN(volumeNumber)) {
+        // Expect 0–100 from UI, store as 0–1
+        const clamped = Math.max(0, Math.min(100, volumeNumber));
+        postData.musicVolume = clamped / 100;
+      }
     }
 
     const post = new Post(postData);

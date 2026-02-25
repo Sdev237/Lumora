@@ -30,8 +30,8 @@ router.get("/location", getPostsByLocation);
 // Get single post
 router.get("/:id", getPost);
 
-// Create post
-router.post("/", upload.array("images", 5), validatePost, createPost);
+// Create post (supports images/videos via "media" field)
+router.post("/", upload.array("media", 10), validatePost, createPost);
 
 // Update post
 router.put("/:id", validatePost, updatePost);

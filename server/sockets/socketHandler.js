@@ -5,6 +5,8 @@
 
 const socketIo = require("socket.io");
 const User = require("../models/User");
+const ChatConversation = require("../models/ChatConversation");
+const LiveSession = require("../models/LiveSession");
 
 let io;
 
@@ -52,6 +54,37 @@ const initSocket = (server) => {
       } catch (error) {
         console.error("Erreur join-room:", error);
       }
+    });
+
+    // Join a chat conversation room
+    socket.on("chat:join", async ({ conversationId }) => {
+      if (!conversationId) return;
+      socket.join(`chat-${conversationId}`);
+    });
+
+    socket.on("chat:leave", ({ conversationId }) => {
+      if (!conversationId) return;
+      socket.leave(`chat-${conversationId}`);
+    });
+
+    // Typing indicators in chat
+    socket.on("chat:typing", ({ conversationId, userId }) => {
+      if (!conversationId || !userId) return;
+      socket.broadcast.to(`chat-${conversationId}`).emit("chat:user-typing", {
+        conversationId,
+        userId,
+      });
+    });
+
+    socket.on("chat:stop-typing", ({ conversationId, userId }) => {
+      if (!conversationId || !userId) return;
+      socket
+        .broadcast
+        .to(`chat-${conversationId}`)
+        .emit("chat:user-stopped-typing", {
+          conversationId,
+          userId,
+        });
     });
 
     // Live location sharing
@@ -127,7 +160,7 @@ const initSocket = (server) => {
       }
     });
 
-    // Typing indicator
+    // Typing indicator on posts (comments)
     socket.on("typing", (data) => {
       const { postId, userId } = data;
       socket.broadcast.to(`post-${postId}`).emit("user-typing", {
@@ -142,6 +175,153 @@ const initSocket = (server) => {
         userId,
         postId,
       });
+    });
+
+    // Live viewers & reactions (lightweight, TikTok-style)
+    socket.on("live:join", ({ sessionId, userId }) => {
+      if (!sessionId) return;
+      socket.join(`live-${sessionId}`);
+      io.to(`live-${sessionId}`).emit("live:viewer-joined", {
+        sessionId,
+        userId,
+      });
+    });
+
+    socket.on("live:leave", ({ sessionId, userId }) => {
+      if (!sessionId) return;
+      socket.leave(`live-${sessionId}`);
+      io.to(`live-${sessionId}`).emit("live:viewer-left", {
+        sessionId,
+        userId,
+      });
+    });
+
+    socket.on("live:comment", ({ sessionId, userId, message }) => {
+      if (!sessionId || !message) return;
+      io.to(`live-${sessionId}`).emit("live:comment", {
+        sessionId,
+        userId,
+        message,
+        createdAt: new Date(),
+      });
+    });
+
+    socket.on("live:like", ({ sessionId, userId, emoji }) => {
+      if (!sessionId) return;
+      io.to(`live-${sessionId}`).emit("live:like", {
+        sessionId,
+        userId,
+        emoji: emoji || "heart",
+        createdAt: new Date(),
+      });
+    });
+
+    // Viewer requests to join "on stage"
+    socket.on("live:request-join", async ({ sessionId, userId }) => {
+      try {
+        if (!sessionId || !userId) return;
+
+        const session = await LiveSession.findById(sessionId).select("host joinRequests guests isActive");
+        if (!session || !session.isActive) return;
+
+        // Do not allow host to request
+        if (session.host.toString() === userId.toString()) return;
+
+        // If already a guest, ignore
+        if (session.guests?.some((g) => g.toString() === userId.toString())) {
+          return;
+        }
+
+        const existing = session.joinRequests?.find(
+          (r) => r.user.toString() === userId.toString() && r.status === "pending"
+        );
+
+        if (!existing) {
+          session.joinRequests.push({ user: userId, status: "pending" });
+          await session.save();
+        }
+
+        const requester = await User.findById(userId).select(
+          "username avatar firstName lastName"
+        );
+
+        io.to(`user-${session.host}`).emit("live:join-request", {
+          sessionId,
+          user: requester,
+          createdAt: new Date(),
+        });
+      } catch (error) {
+        console.error("Erreur live:request-join:", error);
+      }
+    });
+
+    // Host approves a join request
+    socket.on("live:approve-join", async ({ sessionId, targetUserId }) => {
+      try {
+        if (!sessionId || !targetUserId) return;
+
+        const session = await LiveSession.findById(sessionId).select("host joinRequests guests isActive");
+        if (!session || !session.isActive) return;
+
+        // Host-only action: rely on socket.userId set by join-room
+        if (!socket.userId || session.host.toString() !== socket.userId.toString()) {
+          return;
+        }
+
+        // Update request status and add guest
+        session.joinRequests = (session.joinRequests || []).map((r) => {
+          if (r.user.toString() === targetUserId.toString() && r.status === "pending") {
+            return { ...r.toObject(), status: "approved" };
+          }
+          return r;
+        });
+
+        if (!session.guests.some((g) => g.toString() === targetUserId.toString())) {
+          session.guests.push(targetUserId);
+        }
+
+        await session.save();
+
+        io.to(`user-${targetUserId}`).emit("live:join-approved", {
+          sessionId,
+        });
+
+        io.to(`live-${sessionId}`).emit("live:guest-joined", {
+          sessionId,
+          userId: targetUserId,
+          createdAt: new Date(),
+        });
+      } catch (error) {
+        console.error("Erreur live:approve-join:", error);
+      }
+    });
+
+    // Host rejects a join request
+    socket.on("live:reject-join", async ({ sessionId, targetUserId }) => {
+      try {
+        if (!sessionId || !targetUserId) return;
+
+        const session = await LiveSession.findById(sessionId).select("host joinRequests isActive");
+        if (!session || !session.isActive) return;
+
+        if (!socket.userId || session.host.toString() !== socket.userId.toString()) {
+          return;
+        }
+
+        session.joinRequests = (session.joinRequests || []).map((r) => {
+          if (r.user.toString() === targetUserId.toString() && r.status === "pending") {
+            return { ...r.toObject(), status: "rejected" };
+          }
+          return r;
+        });
+        await session.save();
+
+        io.to(`user-${targetUserId}`).emit("live:join-rejected", {
+          sessionId,
+        });
+      } catch (error) {
+        console.error("Erreur live:reject-join:", error);
+      }
     });
 
     // Disconnect handler

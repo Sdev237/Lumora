@@ -13,28 +13,30 @@ interface PostFormProps {
 export default function PostForm({ onPostCreated }: PostFormProps) {
   const { user } = useAuth();
   const [content, setContent] = useState("");
-  const [images, setImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
   const [location, setLocation] = useState<{
     lng: number;
     lat: number;
     address: string;
   } | null>(null);
+  const [musicURL, setMusicURL] = useState("");
+  const [musicVolume, setMusicVolume] = useState(50);
   const [loading, setLoading] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const files = Array.from(e.target.files).slice(0, 5);
-      setImages(files);
+      const files = Array.from(e.target.files).slice(0, 10);
+      setMediaFiles(files);
 
       const previews = files.map((file) => URL.createObjectURL(file));
-      setImagePreviews(previews);
+      setMediaPreviews(previews);
     }
   };
 
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-    setImagePreviews(imagePreviews.filter((_, i) => i !== index));
+  const removeMedia = (index: number) => {
+    setMediaFiles(mediaFiles.filter((_, i) => i !== index));
+    setMediaPreviews(mediaPreviews.filter((_, i) => i !== index));
   };
 
   const handleLocationClick = () => {
@@ -56,8 +58,8 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() && images.length === 0) {
-      toast.error("Veuillez ajouter du contenu ou une image");
+    if (!content.trim() && mediaFiles.length === 0) {
+      toast.error("Veuillez ajouter du contenu ou un média");
       return;
     }
 
@@ -72,9 +74,14 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
         formData.append("address", location.address);
       }
 
-      images.forEach((image) => {
-        formData.append("images", image);
+      mediaFiles.forEach((file) => {
+        formData.append("media", file);
       });
+
+      if (musicURL.trim()) {
+        formData.append("musicURL", musicURL.trim());
+        formData.append("musicVolume", String(musicVolume));
+      }
 
       await api.post("/posts", formData, {
         headers: {
@@ -84,9 +91,11 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
 
       toast.success("Post créé avec succès!");
       setContent("");
-      setImages([]);
-      setImagePreviews([]);
+      setMediaFiles([]);
+      setMediaPreviews([]);
       setLocation(null);
+      setMusicURL("");
+      setMusicVolume(50);
 
       if (onPostCreated) {
         onPostCreated();
@@ -118,9 +127,9 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
               maxLength={2000}
             />
 
-            {imagePreviews.length > 0 && (
+            {mediaPreviews.length > 0 && (
               <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
-                {imagePreviews.map((preview, index) => (
+                {mediaPreviews.map((preview, index) => (
                   <div key={index} className="relative">
                     <img
                       src={preview}
@@ -129,7 +138,7 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
                     />
                     <button
                       type="button"
-                      onClick={() => removeImage(index)}
+                      onClick={() => removeMedia(index)}
                       className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                     >
                       <FiX className="w-4 h-4" />
@@ -138,6 +147,42 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
                 ))}
               </div>
             )}
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="musicURL"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Musique (URL)
+                </label>
+                <input
+                  id="musicURL"
+                  type="url"
+                  value={musicURL}
+                  onChange={(e) => setMusicURL(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="musicVolume"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Volume de la musique ({musicVolume}%)
+                </label>
+                <input
+                  id="musicVolume"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={musicVolume}
+                  onChange={(e) => setMusicVolume(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            </div>
 
             {location && (
               <div className="mt-2 flex items-center text-sm text-primary-600">
@@ -157,12 +202,12 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
               <div className="flex items-center space-x-4">
                 <label className="cursor-pointer flex items-center space-x-2 text-gray-600 hover:text-primary-600 transition-colors">
                   <FiImage className="w-5 h-5" />
-                  <span className="text-sm">Photo</span>
+                  <span className="text-sm">Médias</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     multiple
-                    onChange={handleImageChange}
+                    onChange={handleMediaChange}
                     className="hidden"
                   />
                 </label>
@@ -183,7 +228,7 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
 
               <button
                 type="submit"
-                disabled={loading || (!content.trim() && images.length === 0)}
+                disabled={loading || (!content.trim() && mediaFiles.length === 0)}
                 className="bg-primary-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Publication..." : "Publier"}

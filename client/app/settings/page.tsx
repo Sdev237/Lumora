@@ -13,6 +13,9 @@ export default function SettingsPage() {
 
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+  const [followLabel, setFollowLabel] = useState("");
+  const [followingLabel, setFollowingLabel] = useState("");
+  const [likeLabel, setLikeLabel] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,6 +28,10 @@ export default function SettingsPage() {
     if (user) {
       setUsername(user.username || "");
       setBio(user.bio || "");
+      const pref: any = (user as any).terminologyPreference || {};
+      setFollowLabel(pref.follow || "");
+      setFollowingLabel(pref.following || "");
+      setLikeLabel(pref.like || "");
     }
   }, [user, loading, router]);
 
@@ -37,6 +44,14 @@ export default function SettingsPage() {
       const formData = new FormData();
       formData.append("username", username);
       formData.append("bio", bio);
+      formData.append(
+        "terminologyPreference",
+        JSON.stringify({
+          follow: followLabel || undefined,
+          following: followingLabel || undefined,
+          like: likeLabel || undefined,
+        })
+      );
       if (avatarFile) {
         formData.append("avatar", avatarFile);
       }
@@ -93,6 +108,61 @@ export default function SettingsPage() {
               maxLength={30}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
+          </div>
+
+          <div className="border-t border-gray-200 pt-4">
+            <h2 className="text-lg font-semibold mb-2">Terminologie</h2>
+            <p className="text-xs text-gray-500 mb-3">
+              Personnalisez certains libellés (laisser vide pour utiliser les
+              valeurs par défaut).
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label
+                  htmlFor="followLabel"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Suivre (ex: Subscribe)
+                </label>
+                <input
+                  id="followLabel"
+                  type="text"
+                  value={followLabel}
+                  onChange={(e) => setFollowLabel(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="followingLabel"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Abonné (ex: Subscribed)
+                </label>
+                <input
+                  id="followingLabel"
+                  type="text"
+                  value={followingLabel}
+                  onChange={(e) => setFollowingLabel(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="likeLabel"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Like (ex: Appreciate)
+                </label>
+                <input
+                  id="likeLabel"
+                  type="text"
+                  value={likeLabel}
+                  onChange={(e) => setLikeLabel(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                />
+              </div>
+            </div>
           </div>
 
           <div>

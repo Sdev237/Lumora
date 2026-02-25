@@ -155,6 +155,30 @@ const userSchema = new mongoose.Schema(
       max: 1,
       default: 0,
     },
+    // UX terminology preferences (labels)
+    terminologyPreference: {
+      type: Object,
+      default: {},
+    },
+    // Live status
+    isLive: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    // Social graph controls
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    savedPosts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Post",
+      },
+    ],
   },
   {
     timestamps: true,
@@ -173,6 +197,7 @@ userSchema.index({ "currentLocation.city": 1 });
 userSchema.index({ lastActive: -1 });
 userSchema.index({ followers: 1 });
 userSchema.index({ following: 1 });
+userSchema.index({ isLive: 1 });
 
 /**
  * Hash password before saving

@@ -19,6 +19,21 @@ const postSchema = new mongoose.Schema(
       maxlength: [2000, "Le contenu ne peut pas dépasser 2000 caractères"],
       trim: true,
     },
+    // New unified media field (images/videos)
+    media: [
+      {
+        type: {
+          type: String,
+          enum: ["image", "video"],
+          required: true,
+        },
+        url: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    // Legacy images field kept for backward compatibility
     images: [
       {
         type: String, // Path to uploaded image
@@ -81,6 +96,17 @@ const postSchema = new mongoose.Schema(
       default: 0,
       index: true,
     },
+    // Optional music attached to the post
+    musicURL: {
+      type: String,
+    },
+    // Stored as 0–1; UI can map 0–100 %
+    musicVolume: {
+      type: Number,
+      min: 0,
+      max: 1,
+      default: 0,
+    },
     isPublic: {
       type: Boolean,
       default: true,
@@ -88,6 +114,13 @@ const postSchema = new mongoose.Schema(
     views: {
       type: Number,
       default: 0,
+    },
+    // Optional link to a live session (for "published live" posts)
+    liveSession: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LiveSession",
+      default: null,
+      index: true,
     },
   },
   {

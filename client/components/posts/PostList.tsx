@@ -101,17 +101,20 @@ export default function PostList({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 md:space-y-8">
       {posts.map((post, index) => (
         <div
           key={post._id}
           ref={index === posts.length - 1 ? lastPostElementRef : null}
+          className="md:flex md:justify-center"
         >
-          <PostCard
-            post={post}
-            currentUserId={user?._id}
-            onUpdate={handleRefresh}
-          />
+          <div className="w-full md:max-w-2xl lg:max-w-3xl">
+            <PostCard
+              post={post}
+              currentUserId={user?._id}
+              onUpdate={handleRefresh}
+            />
+          </div>
         </div>
       ))}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
@@ -35,6 +35,9 @@ export default function PostCard({
   const [likesCount, setLikesCount] = useState(post.likes?.length || 0);
   const [showComments, setShowComments] = useState(false);
   const [loading, setLoading] = useState(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   const handleLike = async () => {
     try {
@@ -88,8 +91,78 @@ export default function PostCard({
     router.push(`/profile/${post.author._id}`);
   };
 
+  const hasVideoMedia = Array.isArray(post.media)
+    ? post.media.some((m: any) => m.type === "video")
+    : false;
+
+  // Track visibility of the card (used for background music playback)
+  useEffect(() => {
+    if (!cardRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting && entry.intersectionRatio >= 0.75);
+      },
+      { threshold: [0.5, 0.75, 1] }
+    );
+
+    observer.observe(cardRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // Background music playback tied to visibility
+  useEffect(() => {
+    // If no music, or post contains video media, skip background music to avoid conflicts
+    if (!post.musicURL || hasVideoMedia) {
+      return;
+    }
+
+    // Lazily create audio instance once per card
+    if (!audioRef.current) {
+      const audio = new Audio(post.musicURL as string);
+      audio.loop = true;
+      const storedVolume =
+        typeof post.musicVolume === "number" ? post.musicVolume : 0.5;
+      audio.volume = Math.max(0, Math.min(1, storedVolume));
+      audioRef.current = audio;
+    }
+
+    const audio = audioRef.current;
+
+    if (!audio) return;
+
+    if (isVisible) {
+      // Best-effort autoplay; browsers may block without user gesture
+      audio
+        .play()
+        .catch(() => {
+          // Ignore autoplay errors; do not retry in a loop
+        });
+    } else {
+      audio.pause();
+    }
+  }, [isVisible, post.musicURL, post.musicVolume, hasVideoMedia]);
+
+  // Cleanup on unmount to avoid leaking audio instances
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current.load();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div
+      ref={cardRef}
+      className="bg-white rounded-lg shadow-md overflow-hidden"
+    >
       {/* Header */}
       <div className="p-4 flex items-center justify-between">
         <div
@@ -154,28 +227,76 @@ export default function PostCard({
       </div>
 
       {/* Images */}
-      {post.images && post.images.length > 0 && (
-        <div
-          className={`grid ${
-            post.images.length === 1 ? "grid-cols-1" : "grid-cols-2"
-          } gap-1`}
-        >
-          {post.images.map((image: string, index: number) => (
-            <img
-              key={index}
-              src={
-                image.startsWith("http")
-                  ? image
+      {Array.isArray(post.media) && post.media.length > 0 ? (
+        <div className="relative">
+          <div
+            className={`grid ${
+              post.media.length === 1 ? "grid-cols-1" : "grid-cols-2"
+            } gap-1`}
+          >
+            {post.media.map((item: any, index: number) => {
+              const url =
+                item.url && item.url.startsWith("http")
+                  ? item.url
                   : `${
                       process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
                       "http://localhost:5000"
-                    }${image.startsWith("/") ? image : "/" + image}`
+                    }${
+                      item.url && item.url.startsWith("/")
+                        ? item.url
+                        : "/" + item.url
+                    }`;
+
+              if (item.type === "video") {
+                return (
+                  <video
+                    key={index}
+                    src={url}
+                    className="w-full h-80 object-cover"
+                    controls
+                    playsInline
+                  />
+                );
               }
-              alt={`Post image ${index + 1}`}
-              className="w-full h-64 object-cover"
-            />
-          ))}
+
+              return (
+                <img
+                  key={index}
+                  src={url}
+                  alt={`Media ${index + 1}`}
+                  className="w-full h-80 object-cover"
+                  loading="lazy"
+                />
+              );
+            })}
+          </div>
         </div>
+      ) : (
+        post.images &&
+        post.images.length > 0 && (
+          <div
+            className={`grid ${
+              post.images.length === 1 ? "grid-cols-1" : "grid-cols-2"
+            } gap-1`}
+          >
+            {post.images.map((image: string, index: number) => (
+              <img
+                key={index}
+                src={
+                  image.startsWith("http")
+                    ? image
+                    : `${
+                        process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+                        "http://localhost:5000"
+                      }${image.startsWith("/") ? image : "/" + image}`
+                }
+                alt={`Post image ${index + 1}`}
+                className="w-full h-64 object-cover"
+                loading="lazy"
+              />
+            ))}
+          </div>
+        )
       )}
 
       {/* Actions */}

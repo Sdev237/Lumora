@@ -24,6 +24,8 @@ const likeRoutes = require("./routes/likes");
 const followRoutes = require("./routes/follows");
 const notificationRoutes = require("./routes/notifications");
 const exploreRoutes = require("./routes/explore");
+const chatRoutes = require("./routes/chat");
+const liveRoutes = require("./routes/live");
 
 // Import socket handler
 const socketHandler = require("./sockets/socketHandler");
@@ -139,6 +141,8 @@ app.use("/api/likes", likeRoutes);
 app.use("/api/follows", followRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/explore", exploreRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/live", liveRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

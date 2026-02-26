@@ -70,28 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-        email,
-        password
-      })
-      
-      localStorage.setItem('token', response.data.token)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
-      setUser(response.data.user)
-      
-      // Initialize socket
-      if (response.data.user._id) {
-        initSocket(response.data.user._id)
-      }
-      
-      router.push('/feed')
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Erreur de connexion')
-    }
-  }
-
   const register = async (
     username: string,
     email: string,

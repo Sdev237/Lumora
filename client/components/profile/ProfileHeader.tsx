@@ -91,6 +91,22 @@ export default function ProfileHeader({
                 {user.username?.charAt(0).toUpperCase()}
               </div>
             )}
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-2">
+                <span>
+                  {user.firstName && user.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user.username}
+                </span>
+                {user.isLive && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-600 text-white">
+                    LIVE
+                  </span>
+                )}
+              </h1>
+              <p className="text-gray-600">@{user.username}</p>
+            </div>
+          </div>
 
           {isOwnProfile ? (
             <button

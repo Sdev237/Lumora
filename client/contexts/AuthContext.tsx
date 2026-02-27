@@ -128,7 +128,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
- 
+  const logout = () => {
+    localStorage.removeItem('token')
+    delete axios.defaults.headers.common['Authorization']
+    disconnectSocket()
+    setUser(null)
+    router.push('/')
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout }}>

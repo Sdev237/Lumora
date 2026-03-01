@@ -46,15 +46,6 @@ export default function Navbar() {
       setUnreadCount((prev) => prev + 1);
     };
 
-    onNotification(handleNewNotification);
-
-    return () => {
-      const socket = getSocket();
-      if (socket) {
-        socket.off("new-notification", handleNewNotification);
-      }
-    };
-  }, [user]);
 
   const navItems = [
     { href: "/feed", icon: FiHome, label: "Accueil" },

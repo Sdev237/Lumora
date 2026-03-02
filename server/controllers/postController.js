@@ -23,6 +23,23 @@ exports.createPost = async (req, res, next) => {
         url: `/uploads/${file.filename}`,
       };
     });
+    const images = media
+      .filter((m) => m.type === "image")
+      .map((m) => m.url);
+
+    if (!content && media.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le contenu ou une image est requis'
+      });
+    }
+
+    const postData = {
+      author: req.user._id,
+      content: content || '',
+      media,
+      images,
+    };
 
     // Add location if provided
     if (location) {

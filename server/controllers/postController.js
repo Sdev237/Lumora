@@ -40,6 +40,23 @@ exports.createPost = async (req, res, next) => {
       media,
       images,
     };
+
+    // Add location if provided
+    if (location) {
+      const { longitude, latitude, address, city, country, placeName } = location;
+      if (longitude && latitude) {
+        postData.location = {
+          type: 'Point',
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          address: address || '',
+          city: city || '',
+          country: country || '',
+          placeName: placeName || ''
+        };
+        postData.city = city || '';
+      }
+    }
+
     // Add tags if provided
     if (tags) {
       postData.tags = Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim());
@@ -57,6 +74,8 @@ exports.createPost = async (req, res, next) => {
       }
     }
 
+    const post = new Post(postData);
+    await post.save();
 
     // Update user's posts array
     await User.findByIdAndUpdate(req.user._id, {

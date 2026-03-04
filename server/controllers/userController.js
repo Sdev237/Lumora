@@ -22,21 +22,6 @@ exports.getProfile = async (req, res, next) => {
         success: false,
         message: 'Utilisateur non trouvé'
       });
-    }
-
-    const posts = await Post.find({ author: user._id, isPublic: true })
-      .populate('author', 'username avatar firstName lastName')
-      .sort({ createdAt: -1 })
-      .limit(20);
-
-    res.json({
-      success: true,
-      user,
-      posts
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
 /**

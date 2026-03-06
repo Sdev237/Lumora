@@ -78,6 +78,18 @@ exports.updateProfile = async (req, res, next) => {
       };
     }
 
+    if (terminologyPreference) {
+      try {
+        const parsed =
+          typeof terminologyPreference === "string"
+            ? JSON.parse(terminologyPreference)
+            : terminologyPreference;
+        updates.terminologyPreference = parsed;
+      } catch (e) {
+        // Ignore malformed preferences
+      }
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $set: updates },

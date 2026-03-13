@@ -17,14 +17,23 @@ exports.getProfile = async (req, res, next) => {
       .populate('following', 'username avatar firstName lastName currentLocation')
       .select('-password');
 
-    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
+    }
 
     const posts = await Post.find({ author: user._id, isPublic: true })
       .populate('author', 'username avatar firstName lastName')
       .sort({ createdAt: -1 })
       .limit(20);
 
-    res.json({ success: true, user, posts });
+    res.json({
+      success: true,
+      user,
+      posts
+    });
   } catch (error) {
     next(error);
   }
@@ -39,8 +48,18 @@ exports.updateProfile = async (req, res, next) => {
     const updates = {};
 
     if (username) {
-      const existing = await User.findOne({ username, _id: { $ne: req.user._id } });
-      if (existing) return res.status(400).json({ success: false, message: "Ce nom d'utilisateur est déjà utilisé" });
+      const existing = await User.findOne({
+        username,
+        _id: { $ne: req.user._id },
+      });
+
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: "Ce nom d'utilisateur est déjà utilisé",
+        });
+      }
+
       updates.username = username;
     }
 
@@ -49,7 +68,6 @@ exports.updateProfile = async (req, res, next) => {
     if (bio !== undefined) updates.bio = bio;
     if (req.file) updates.avatar = `/uploads/${req.file.filename}`;
     if (interests) updates.interests = Array.isArray(interests) ? interests : interests.split(',').map(i => i.trim());
-
     if (homeLocation) {
       updates.homeLocation = {
         type: 'Point',
@@ -62,15 +80,27 @@ exports.updateProfile = async (req, res, next) => {
 
     if (terminologyPreference) {
       try {
-        updates.terminologyPreference = typeof terminologyPreference === 'string' 
-          ? JSON.parse(terminologyPreference) 
-          : terminologyPreference;
-      } catch { /* ignore malformed */ }
+        const parsed =
+          typeof terminologyPreference === "string"
+            ? JSON.parse(terminologyPreference)
+            : terminologyPreference;
+        updates.terminologyPreference = parsed;
+      } catch (e) {
+        // Ignore malformed preferences
+      }
     }
 
-    const user = await User.findByIdAndUpdate(req.user._id, { $set: updates }, { new: true, runValidators: true }).select('-password');
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select('-password');
 
-    res.json({ success: true, message: 'Profil mis à jour', user });
+    res.json({
+      success: true,
+      message: 'Profil mis à jour',
+      user
+    });
   } catch (error) {
     next(error);
   }
@@ -83,7 +113,12 @@ exports.updateLocation = async (req, res, next) => {
   try {
     const { longitude, latitude, address, city, country, isSharing } = req.body;
 
-    if (!longitude || !latitude) return res.status(400).json({ success: false, message: 'Coordonnées requises' });
+    if (!longitude || !latitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'Coordonnées requises'
+      });
+    }
 
     const updateData = {
       'currentLocation.coordinates': [longitude, latitude],
@@ -95,12 +130,17 @@ exports.updateLocation = async (req, res, next) => {
       lastActive: new Date()
     };
 
-    const user = await User.findByIdAndUpdate(req.user._id, { $set: updateData }, { new: true }).select('-password');
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updateData },
+      { new: true }
+    ).select('-password');
 
     // Emit socket event for real-time updates
-    if (getIO() && user.currentLocation.isSharing) {
+    const io = getIO();
+    if (io && isSharing) {
       user.followers.forEach(followerId => {
-        getIO().to(`user-${followerId}`).emit('location-update', {
+        io.to(`user-${followerId}`).emit('location-update', {
           userId: user._id,
           location: user.currentLocation,
           timestamp: new Date()
@@ -108,7 +148,11 @@ exports.updateLocation = async (req, res, next) => {
       });
     }
 
-    res.json({ success: true, message: 'Localisation mise à jour', location: user.currentLocation });
+    res.json({
+      success: true,
+      message: 'Localisation mise à jour',
+      location: user.currentLocation
+    });
   } catch (error) {
     next(error);
   }
@@ -120,21 +164,29 @@ exports.updateLocation = async (req, res, next) => {
 exports.searchUsers = async (req, res, next) => {
   try {
     const { q } = req.query;
-    if (!q || q.length < 2) return res.json({ success: true, users: [] });
+    
+    if (!q || q.length < 2) {
+      return res.json({
+        success: true,
+        users: []
+      });
+    }
 
-    const regex = new RegExp(q, 'i');
-    const users = await User.find({ 
-      isActive: true,
+    const users = await User.find({
       $or: [
-        { username: regex },
-        { firstName: regex },
-        { lastName: regex }
-      ]
+        { username: { $regex: q, $options: 'i' } },
+        { firstName: { $regex: q, $options: 'i' } },
+        { lastName: { $regex: q, $options: 'i' } }
+      ],
+      isActive: true
     })
     .select('username avatar firstName lastName bio currentLocation')
     .limit(20);
 
-    res.json({ success: true, users });
+    res.json({
+      success: true,
+      users
+    });
   } catch (error) {
     next(error);
   }
@@ -146,17 +198,38 @@ exports.searchUsers = async (req, res, next) => {
 exports.getNearbyUsers = async (req, res, next) => {
   try {
     const { longitude, latitude, maxDistance = 10000, city } = req.query;
-    const query = { isActive: true, _id: { $ne: req.user._id } };
 
-    if (city) query['currentLocation.city'] = new RegExp(city, 'i');
-    else if (longitude && latitude) query.currentLocation = { $near: { $geometry: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] }, $maxDistance: parseInt(maxDistance) } };
-    else return res.status(400).json({ success: false, message: 'Coordonnées ou ville requises' });
+    let query = { isActive: true, _id: { $ne: req.user._id } };
+
+    // If city is provided, use city-based filtering (local network mode)
+    if (city) {
+      query['currentLocation.city'] = new RegExp(city, 'i');
+    } else if (longitude && latitude) {
+      // Otherwise use geospatial query
+      query.currentLocation = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(longitude), parseFloat(latitude)]
+          },
+          $maxDistance: parseInt(maxDistance)
+        }
+      };
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Coordonnées ou ville requises'
+      });
+    }
 
     const users = await User.find(query)
       .select('username avatar firstName lastName currentLocation lastActive')
       .limit(50);
 
-    res.json({ success: true, users });
+    res.json({
+      success: true,
+      users
+    });
   } catch (error) {
     next(error);
   }
@@ -176,7 +249,10 @@ exports.getActiveUsers = async (req, res, next) => {
     .sort({ lastActive: -1 })
     .limit(100);
 
-    res.json({ success: true, users });
+    res.json({
+      success: true,
+      users
+    });
   } catch (error) {
     next(error);
   }

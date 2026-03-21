@@ -52,15 +52,6 @@ exports.createStory = async (req, res, next) => {
 
     // Notify followers
     const user = await User.findById(req.user._id).select("followers");
-    if (user && user.followers.length > 0) {
-      user.followers.forEach((followerId) => {
-        emitNotification(followerId, {
-          type: "story",
-          message: `${req.user.username} a publié une story`,
-          storyId: story._id,
-        });
-      });
-    }
 
     res.status(201).json({
       success: true,

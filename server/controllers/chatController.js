@@ -8,6 +8,27 @@ const ChatMessage = require("../models/ChatMessage");
 const { getIO } = require("../sockets/socketHandler");
 
 /**
+ * Get conversations for current user
+ */
+exports.getConversations = async (req, res, next) => {
+  try {
+    const conversations = await ChatConversation.find({
+      participants: req.user._id,
+    })
+      .sort({ lastUpdated: -1 })
+      .populate("participants", "username avatar firstName lastName isLive")
+      .populate("lastMessage");
+
+    res.json({
+      success: true,
+      conversations,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get messages for a conversation
  */
 exports.getMessages = async (req, res, next) => {

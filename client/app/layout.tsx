@@ -6,9 +6,19 @@ import { Toaster } from 'react-hot-toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
+export const viewport = {
+  themeColor: '#000000',
+}
+
 export const metadata: Metadata = {
   title: 'Lumora - Réseau Social Moderne',
   description: 'Partagez vos instants et découvrez le monde avec Lumora',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Lumora',
+  },
 }
 
 export default function RootLayout({

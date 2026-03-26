@@ -5,6 +5,14 @@
 
 const Notification = require('../models/Notification');
 
+// Import des modèles pour permettre au .populate() de Mongoose 
+// d'associer correctement les références sans déclencher de MissingSchemaError
+require('../models/User');
+require('../models/Post');
+require('../models/Comment');
+require('../models/Story');
+require('../models/TimeCapsule');
+
 /**
  * Get notifications
  */

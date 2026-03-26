@@ -191,13 +191,10 @@ userSchema.index({ currentLocation: "2dsphere" });
 // userSchema.index({ homeLocation: "2dsphere" });
 
 // Indexes for performance
-userSchema.index({ username: 1 });
-userSchema.index({ email: 1 });
 userSchema.index({ "currentLocation.city": 1 });
 userSchema.index({ lastActive: -1 });
 userSchema.index({ followers: 1 });
 userSchema.index({ following: 1 });
-userSchema.index({ isLive: 1 });
 
 /**
  * Hash password before saving

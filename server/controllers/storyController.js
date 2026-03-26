@@ -45,32 +45,6 @@ exports.createStory = async (req, res, next) => {
     // Create story with 24-hour expiration
     const story = await Story.createStory(storyData);
 
-    const populatedStory = await Story.findById(story._id).populate(
-      "author",
-      "username avatar firstName lastName"
-    );
-
-    // Notify followers
-    const user = await User.findById(req.user._id).select("followers");
-    if (user && user.followers.length > 0) {
-      user.followers.forEach((followerId) => {
-        emitNotification(followerId, {
-          type: "story",
-          message: `${req.user.username} a publié une story`,
-          storyId: story._id,
-        });
-      });
-    }
-
-    res.status(201).json({
-      success: true,
-      message: "Story créée avec succès",
-      story: populatedStory,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 /**
  * Get stories from followed users

@@ -97,10 +97,7 @@ function getMongoUri() {
 const mongoUri = getMongoUri();
 
 mongoose
-  .connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(mongoUri)
   .then(async () => {
     console.log("✅ MongoDB connecté avec succès");
 

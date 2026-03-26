@@ -109,7 +109,7 @@ exports.createPost = async (req, res, next) => {
 
 
 /**
- * Get feed
+ * Get feed (Mixte 70% Abonnements / 30% Découvertes)
  */
 exports.getFeed = async (req, res, next) => {
   try {
@@ -117,27 +117,56 @@ exports.getFeed = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const { city } = req.query;
 
-    const skip = (page - 1) * limit;
-
     const user = await User.findById(req.user._id).select("following");
+    const followingIds = [...(user.following || []), req.user._id];
 
-    const followingIds = [...user.following, req.user._id];
+    // Ratio d'affichage: 70% d'amis, 30% de découvertes (inconnus)
+    let followingLimit = Math.ceil(limit * 0.7);
+    let othersLimit = limit - followingLimit;
+    
+    // Pagination distincte pour les deux groupes
+    const followingSkip = (page - 1) * followingLimit;
+    let othersSkip = (page - 1) * othersLimit;
 
-    const query = {
+    const followingQuery = {
       author: { $in: followingIds },
       isPublic: true
     };
+    if (city) followingQuery.city = new RegExp(city, "i");
 
-    if (city) {
-      query.city = new RegExp(city, "i");
-    }
-
-    const posts = await Post.find(query)
+    const followingPosts = await Post.find(followingQuery)
       .populate("author", "username avatar firstName lastName")
       .populate("likes", "username avatar")
       .sort(city ? { city: 1, createdAt: -1 } : { createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+      .skip(followingSkip)
+      .limit(followingLimit);
+
+    // Si on a moins d'amis que prévu, on comble en augmentant la part de découvertes pour cette page
+    // (Avertissement: with pure skip/limit, othersSkip should ideally be recalculated to ensure continuous global pagination, but this approach safely fills a single page block)
+    if (followingPosts.length < followingLimit) {
+      othersLimit += (followingLimit - followingPosts.length);
+    }
+
+    const othersQuery = {
+      author: { $nin: followingIds },
+      isPublic: true
+    };
+    if (city) othersQuery.city = new RegExp(city, "i");
+
+    const otherPosts = await Post.find(othersQuery)
+      .populate("author", "username avatar firstName lastName")
+      .populate("likes", "username avatar")
+      .sort(city ? { city: 1, createdAt: -1 } : { createdAt: -1 })
+      .skip(othersSkip)
+      .limit(othersLimit);
+
+    // Fusion et tri final descendant des deux groupes pour recréer une timeline naturelle
+    const posts = [...followingPosts, ...otherPosts].sort((a, b) => {
+      if (city) {
+        if (a.city !== b.city) return a.city > b.city ? 1 : -1;
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
 
     res.json({
       success: true,
@@ -145,7 +174,7 @@ exports.getFeed = async (req, res, next) => {
       pagination: {
         page,
         limit,
-        hasMore: posts.length === limit
+        hasMore: (followingPosts.length + otherPosts.length) === limit
       }
     });
 

@@ -6,6 +6,18 @@ const http = require("http");
 const socketIo = require("socket.io");
 require("dotenv").config();
 
+// Enregistrer TOUS les modèles Mongoose immédiatement au démarrage
+// Cela empêche définitivement les erreurs MissingSchemaError peu importe où les populate() se font
+require('./models/User');
+require('./models/Post');
+require('./models/Comment');
+require('./models/Story');
+require('./models/Notification');
+require('./models/TimeCapsule');
+require('./models/LiveSession');
+require('./models/ChatConversation');
+require('./models/ChatMessage');
+
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const postRoutes = require("./routes/posts");
@@ -18,16 +30,17 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    methods: ["GET", "POST"],
+    origin: true, // Autorise de façon dynamique toutes les requêtes (localhost et les adresses IP du réseau local)
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
   },
 });
 
 // Middleware
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: false })); // Permettre aux images d'être chargées sur l'IP locale
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: true, // Accepter la connexion venant du téléphone avec la vraie adresse IP
     credentials: true,
   })
 );
@@ -39,10 +52,7 @@ app.use("/uploads", express.static("uploads"));
 
 // MongoDB Connection
 mongoose
-  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/voyageo", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/voyageo")
   .then(() => console.log("✅ MongoDB connecté"))
   .catch((err) => console.error("❌ Erreur MongoDB:", err));
 
